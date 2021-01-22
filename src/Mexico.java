@@ -18,11 +18,13 @@ public class Mexico {
     final Random rand = new Random();
     final Scanner sc = new Scanner(in);
     final int maxRolls = 3;      // No player may exceed this
+    int maxRollsRound = maxRolls;
     final int startAmount = 3;   // Money for a player. Select any
     final int mexico = 1000;     // A value greater than any other
 
+
     void program() {
-        //test();            // <----------------- UNCOMMENT to test
+        test();            // <----------------- UNCOMMENT to test
 
         int pot = 0;         // What the winner will get
         Player[] players;    // The players (array of Player objects)
@@ -36,34 +38,56 @@ public class Mexico {
         out.println("Mexico Game Started");
         statusMsg(players);
 
-       // while (players.length > 1) {   // Game over when only one player left
+        while (players.length > 1) {   // Game over when only one player left
 
-            // ----- In ----------
-            String cmd = getPlayerChoice(current);
-            if ("r".equals(cmd)) {
+            out.println("Next to roll is " + current.name);
+            current.rollDice();
 
-                    // --- Process ------
+    
+            //A player may reroll as long as they do not exceed maxRolls
+            while(current.nRolls < (maxRollsRound)) {
 
+            // ----- In ----------e
+                String cmd = getPlayerChoice(current);
+                if ("r".equals(cmd)) {
+                    //Reroll, and increment the players nRolls
 
-                    // ---- Out --------
-                    roundMsg(current);
+                        // --- Process ------
+                    current.rollDice();
 
-            } else if ("n".equals(cmd)) {
-                 // Process
-            } else {
-                out.println("?");
+                } else if ("n".equals(cmd)) {
+                    //Nobody may roll more times than the leader
+                    if(current.equals(leader)) {
+                        maxRollsRound = current.nRolls;
+                    }
+                    break;
+                } else {
+                    out.println("Invalid input, try again");
+                }
             }
+            current = next(players, current);
 
-            //if ( round finished) {
+            
+            //When we reach the leader again one round is done
+            if(current.equals(leader)) {
                 // --- Process -----
+                players = allRolled(players,current,leader);
+                pot++;
+                current = players[0];
+                leader = current;
+
+
 
                 // ----- Out --------------------
-                out.println("Round done ... lost!");
-                out.println("Next to roll is " + current.name);
+                //out.println("Round done ... lost!");
+                //out.println("Next to roll is " + current.name);
 
-                statusMsg(players);
-            //}
-        //}
+                //statusMsg(players);
+            }
+
+
+
+        }
         out.println("Game Over, winner is " + players[0].name + ". Will get " + pot + " from pot");
     }
 
@@ -71,6 +95,51 @@ public class Mexico {
     // ---- Game logic methods --------------
 
     // TODO implement and test methods (one at the time)
+
+    /*  allRolled method that is executed after a round is done.
+     *  It removes amount from the loser if they have any amount left,
+     *  otherwise removes the loser. It also resets the number of rolls
+     *  player = array of Player
+     *  current = Player
+     */
+    Player[] allRolled(Player[] players, Player current, Player leader){
+        Player loser = getLoser(players);
+
+        loser.amount--;
+
+        if (loser.getAmount() == 0){
+            current = next(players, loser);
+            players = removeLoser(players, loser);
+
+        }else{
+
+            current = loser;
+        }
+
+        leader = current;
+        clearRoundResults(players);
+        out.println("Round Done " + loser.name + " lost!");
+        players = sortPlayers(players, current);
+        statusMsg(players);
+
+        return players;
+    }
+
+    Player[] sortPlayers(Player[] players, Player current){
+        Player[] newPlayers = new Player[players.length];
+        for(int i = 0; i< players.length; i++){
+            newPlayers[i] = players[(indexOf(players, current) + i) % players.length];
+        }
+
+        return newPlayers;
+    }
+
+    void clearRoundResults(Player[] players){
+        for (Player player:players) {
+            player.setnRolls(0);
+        }
+        maxRollsRound = maxRolls;
+    }
 
 
     int indexOf(Player[] players, Player player) {
@@ -82,6 +151,19 @@ public class Mexico {
         return -1;
     }
 
+    Player next(Player[] players, Player player){
+        return players[(indexOf(players, player)+1)% players.length];
+    }
+
+    /*
+     * method to select the next player by index instead of a player object
+     * this method is needed in case we remove the loser from the player array
+     * before select the next player
+     */
+    /*Player next(Player[] players, int id) {
+        return players[(id+1)%players.length];
+    }*/
+
     Player getLoser(Player[] players){
         Player loser = players[0];
         for (Player player: players){
@@ -91,7 +173,7 @@ public class Mexico {
         }
         return (loser);
     }
-    Player[] removeLoser(Player loser, Player[] players){
+    Player[] removeLoser(Player[] players, Player loser){
         Player[] newPlayers = new Player[players.length - 1];
 
         for (int i = 0, j = 0; i < players.length; i++) {
@@ -168,12 +250,26 @@ public class Mexico {
             return amount;
         }
 
+        public void rollDice() {
+            this.fstDice = rand.nextInt(6) + 1;
+            this.secDice = rand.nextInt(6) + 1;
+            roundMsg(this);
+            this.nRolls++;
+        }
+
         public void setAmount(int amount) {
             this.amount = amount;
         }
 
        public int getScore(){
             if ((10*fstDice+ secDice == 21) || (10*fstDice+ secDice == 21)){
+                out.print(".___  ___.  __________   ___  __    ______   ______   \n" +
+                        "|   \\/   | |   ____\\  \\ /  / |  |  /      | /  __  \\  \n" +
+                        "|  \\  /  | |  |__   \\  V  /  |  | |  ,----'|  |  |  | \n" +
+                        "|  |\\/|  | |   __|   >   <   |  | |  |     |  |  |  | \n" +
+                        "|  |  |  | |  |____ /  .  \\  |  | |  `----.|  `--'  | \n" +
+                        "|__|  |__| |_______/__/ \\__\\ |__|  \\______| \\______/  ");
+
                 return (256);
             }
             switch(Integer.compare(fstDice, secDice)) {
@@ -225,10 +321,10 @@ public class Mexico {
         ps[2].fstDice = 1;
         ps[2].secDice = 1;
 
-        //out.println(getScore(ps[0]) == 62);
-        //out.println(getScore(ps[1]) == 65);
-        //out.println(next(ps, ps[0]) == ps[1]);
-        //out.println(getLoser(ps) == ps[0]);
+        out.println(ps[0].getScore() == 62);
+        out.println(ps[1].getScore() == 65);
+        out.println(next(ps, ps[0]) == ps[1]);
+        out.println(getLoser(ps) == ps[0]);
 
         exit(0);
     }
