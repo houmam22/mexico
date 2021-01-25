@@ -24,7 +24,7 @@ public class Mexico {
 
 
     void program() {
-        test();            // <----------------- UNCOMMENT to test
+        //test();            // <----------------- UNCOMMENT to test
 
         int pot = 0;         // What the winner will get
         Player[] players;    // The players (array of Player objects)
@@ -40,6 +40,7 @@ public class Mexico {
 
         while (players.length > 1) {   // Game over when only one player left
 
+            //Every player should roll at least once
             out.println("Next to roll is " + current.name);
             current.rollDice();
 
@@ -65,13 +66,18 @@ public class Mexico {
                     out.println("Invalid input, try again");
                 }
             }
+            //Go to the next player
             current = next(players, current);
 
             
             //When we reach the leader again one round is done
             if(current.equals(leader)) {
                 // --- Process -----
-                players = allRolled(players,current,leader);
+                //Execute the allRolled method, which takes care of updating
+                //the array of players according to the game rules
+                players = allRolled(players,current);
+                //Since there always will be one (and only one) loser the pot should be
+                //incremented once at the end of every round
                 pot++;
                 current = players[0];
                 leader = current;
@@ -94,15 +100,17 @@ public class Mexico {
 
     // ---- Game logic methods --------------
 
-    // TODO implement and test methods (one at the time)
 
     /*  allRolled method that is executed after a round is done.
      *  It removes amount from the loser if they have any amount left,
      *  otherwise removes the loser. It also resets the number of rolls
      *  player = array of Player
      *  current = Player
+     *  Returns: array of players such that the loser has been removed if 
+     *  they don't have any money left and the next player is the first
+     *  element of the array
      */
-    Player[] allRolled(Player[] players, Player current, Player leader){
+    Player[] allRolled(Player[] players, Player current){
         Player loser = getLoser(players);
 
         loser.amount--;
@@ -116,15 +124,26 @@ public class Mexico {
             current = loser;
         }
 
-        leader = current;
-        clearRoundResults(players);
+        clearRoundResults(players); //Reset player rolls
         out.println("Round Done " + loser.name + " lost!");
-        players = sortPlayers(players, current);
+        //The next player should be the first element of the returned array.
+        //This is done because it is more difficult to return multiple values of 
+        //different tyes in java than in other languages, and we need to know the
+        //(updated) value of current outside of this method.
+        players = sortPlayers(players, current); 
         statusMsg(players);
 
         return players;
     }
 
+    /* sortPlayers does not actually sort the array of players, but rotates it such 
+     * that the passed player "current" will be the first element of the returned 
+     * array, and the order of players otherwise is preserved.
+     * players = array of Player
+     * current = Player in players that should be placed at the start, needs to be an element
+     * of players
+     * returns: new Player array
+     */
     Player[] sortPlayers(Player[] players, Player current){
         Player[] newPlayers = new Player[players.length];
         for(int i = 0; i< players.length; i++){
@@ -134,9 +153,12 @@ public class Mexico {
         return newPlayers;
     }
 
+    /*Sets nRolls to 0 for all players and resets the max amount of rolls to its predefined
+     * value.
+     */
     void clearRoundResults(Player[] players){
         for (Player player:players) {
-            player.setnRolls(0);
+            player.nRolls=0;
         }
         maxRollsRound = maxRolls;
     }
@@ -151,19 +173,15 @@ public class Mexico {
         return -1;
     }
 
+    /*Returns the next player
+     */
     Player next(Player[] players, Player player){
         return players[(indexOf(players, player)+1)% players.length];
     }
 
-    /*
-     * method to select the next player by index instead of a player object
-     * this method is needed in case we remove the loser from the player array
-     * before select the next player
-     */
-    /*Player next(Player[] players, int id) {
-        return players[(id+1)%players.length];
-    }*/
 
+    /* Given an array of players returns the player with the lowest score.
+     */
     Player getLoser(Player[] players){
         Player loser = players[0];
         for (Player player: players){
@@ -173,6 +191,10 @@ public class Mexico {
         }
         return (loser);
     }
+    /*Creates and returns an array of players containing all of the
+     * players in the original array in the same order, except for the
+     * loser.
+     */
     Player[] removeLoser(Player[] players, Player loser){
         Player[] newPlayers = new Player[players.length - 1];
 
@@ -257,12 +279,12 @@ public class Mexico {
             this.nRolls++;
         }
 
-        public void setAmount(int amount) {
-            this.amount = amount;
-        }
 
-       public int getScore(){
-            if ((10*fstDice+ secDice == 21) || (10*fstDice+ secDice == 21)){
+        public int getScore(){
+            //Calculate most of the score in a helper function, if the result is 21
+            //the player gets a Mexico, special case. Otherwise, just return the result
+            int score = this.getScoreAux();
+            if (score == 21) {
                 out.print(".___  ___.  __________   ___  __    ______   ______   \n" +
                         "|   \\/   | |   ____\\  \\ /  / |  |  /      | /  __  \\  \n" +
                         "|  \\  /  | |  |__   \\  V  /  |  | |  ,----'|  |  |  | \n" +
@@ -270,8 +292,15 @@ public class Mexico {
                         "|  |  |  | |  |____ /  .  \\  |  | |  `----.|  `--'  | \n" +
                         "|__|  |__| |_______/__/ \\__\\ |__|  \\______| \\______/  ");
 
-                return (256);
+                return (mexico);
+            } else {
+                return score;
             }
+       }
+
+       private int getScoreAux() {
+           //The players score is 10*the die with the highest value + the die with the lowest
+           //value, unless the dice have the same value.
             switch(Integer.compare(fstDice, secDice)) {
                 case (-1):
                     return (10 * secDice + fstDice);
@@ -282,24 +311,6 @@ public class Mexico {
             }
             return (0);
        }
-
-        public void setFstDice(int fstDice) {
-            this.fstDice = fstDice;
-        }
-
-
-
-        public void setSecDice(int secDice) {
-            this.secDice = secDice;
-        }
-
-        public int getnRolls() {
-            return nRolls;
-        }
-
-        public void setnRolls(int nRolls) {
-            this.nRolls = nRolls;
-        }
     }
 
     /**************************************************
